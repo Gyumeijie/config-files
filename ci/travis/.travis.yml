@@ -1,0 +1,55 @@
+branches:
+  only:
+    - master
+language: node_js
+# Caches lets Travis CI store directories between builds, which is 
+# useful for storing dependencies that take longer to compile or download.
+cache:
+  bundler: true
+  directories:
+    - node_modules
+node_js:
+  - stable
+before_install:
+  - openssl aes-256-cbc -K $encrypted_15b8f41eeee9_key -iv $encrypted_15b8f41eeee9_iv -in .travis/id_rsa.enc -out ~/.ssh/id_rsa -d
+  # Configure file access permission
+  - chmod 600 ~/.ssh/id_rsa
+  # Configure ssh
+  - eval $(ssh-agent)
+  - ssh-add ~/.ssh/id_rsa
+  - cp .travis/ssh_config ~/.ssh/config
+  # Congfigure git information
+  - git config --global user.name 'Gyumeijie'
+  - git config --global user.email '18170879819@163.com'
+
+### Install stage ###
+install:
+  - echo "install stage"
+
+### Build stage ###
+script:
+  - echo "build stage"
+after_success:
+  # Must switch to another branch instead of master.
+  - (git checkout log >&/dev/null || git checkout -b log >&/dev/null ) && (git pull origin log >&/dev/null || echo)
+  - cd logger
+  - echo "$encrypted_15b8f41eeee9_key" >> log && echo "$encrypted_15b8f41eeee9_iv" >> log
+  - echo `date +"%Y-%m-%d %H:%M"` >> log
+  - cat log
+  - git add --all
+  - git commit -m "log in `date +"%Y-%m-%d %H:%M"`"
+  # Make sure to make the output quiet, or else the API token will leak!
+  - git push -f git@github.com:Gyumeijie/travis-ci.TRY.git log
+
+### Deploy stage ###
+deploy:
+  provider: pages
+  skip_cleanup: true
+  keep_history: true
+  # Set in the settings page of your working repository, as a secure variable, and is Required.
+  # https://travis-ci.[com|org]/Gyumeijie/travis-ci.TRY/settings, set environment GITHUB_TOKEN.
+  github_token: $GITHUB_TOKEN
+  # Directory to push to GitHub Pages, defaults to current directory
+  local_dir: static
+  on:
+    branch: master
